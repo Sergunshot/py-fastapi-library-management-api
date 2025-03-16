@@ -3,9 +3,8 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 
-from db.crud import get_author, get_author_by_name
+from db import crud
 from db.database import SessionLocal
-from db.models import Book
 from schemas import BookSchemaResponse, BookSchemaCreate, AuthorSchemaCreate, AuthorSchemaResponse
 
 router = APIRouter()
@@ -34,12 +33,12 @@ def get_books(
         limit: int = Query(DEFAULT_PAGE, ge=0),
         offset: int = Query(DEFAULT_PAGE_SIZE, ge=0)
 ):
-    return get_books(db, offset=offset, limit=limit)
+    return crud.get_books(db, offset=offset, limit=limit)
 
 
 @router.get("/books/{book_id}", response_model=BookSchemaResponse)
 def get_book(book_id: int, db: Session = Depends(get_db)):
-    book = get_book(db=db, book_id=book_id)
+    book = crud.get_book(db=db, book_id=book_id)
 
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -47,29 +46,29 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
-@router.post("/books", response_model=BookSchemaCreate)
+@router.post("/books", response_model=BookSchemaResponse)
 def create_book(book: BookSchemaCreate, db: Session = Depends(get_db)):
-    db_author = get_author(db=db, author_id=book.author_id)
+    db_author = crud.get_author(db=db, author_id=book.author_id)
 
     if not db_author:
         raise HTTPException(status_code=404, detail="Author not found")
 
-    return create_book(book=book, db=db)
+    return crud.create_book(book=book, db=db)
 
 
-@router.post("/authors", response_model=AuthorSchemaCreate)
+@router.post("/authors", response_model=AuthorSchemaResponse)
 def create_author(author: AuthorSchemaCreate, db: Session = Depends(get_db)):
-    db_author = get_author_by_name(db=db, name=author.name)
+    db_author = crud.get_author_by_name(db=db, name=author.name)
 
     if db_author:
         raise HTTPException(status_code=400, detail="Author already exists")
 
-    return create_author(author=author, db=db)
+    return crud.create_author(author=author, db=db)
 
 
 @router.get("/authors/{author_id}", response_model=AuthorSchemaResponse)
 def get_author(author_id: int, db: Session = Depends(get_db)):
-    author = get_author(db=db, author_id=author_id)
+    author = crud.get_author(db=db, author_id=author_id)
 
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")
@@ -82,4 +81,4 @@ def get_authors(
         db: Session = Depends(get_db),
         limit: int = Query(DEFAULT_PAGE, ge=0),
         offset: int = Query(DEFAULT_PAGE_SIZE, ge=0),):
-    return get_authors(db, limit=limit, offset=offset)
+    return crud.get_authors(db, limit=limit, offset=offset)
